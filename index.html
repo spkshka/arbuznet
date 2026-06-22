@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Arbuznet</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #2a5885; font-family: 'Segoe UI', Tahoma, sans-serif; color: #000; min-height: 100vh; }
+        .wrap { max-width: 800px; margin: 0 auto; background: #e5ebf1; min-height: 100vh; padding: 10px; }
+        .header { background: #2a5885; padding: 8px 12px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { color: #fff; font-size: 1.2rem; font-weight: 600; }
+        .header .user { color: #b0c4de; font-size: 0.7rem; cursor: pointer; background: rgba(255,255,255,0.1); padding: 4px 12px; border-radius: 30px; }
+        .header .user:hover { background: rgba(255,255,255,0.2); }
+        .tabs { display: flex; gap: 2px; background: #2a5885; padding: 0 12px 4px; flex-wrap: wrap; }
+        .tabs button { padding: 6px 14px; border: none; background: transparent; color: #b0c4de; font-size: 0.65rem; font-weight: 600; cursor: pointer; border-radius: 4px 4px 0 0; transition: 0.2s; }
+        .tabs button:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .tabs button.active { color: #fff; background: rgba(255,255,255,0.08); border-bottom: 2px solid #fff; }
+        .panel { display: none; background: #fff; border-radius: 0 0 8px 8px; padding: 12px; min-height: 500px; }
+        .panel.active { display: block; }
+        .post { background: #fff; border: 1px solid #d0d8e0; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+        .post .head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .post .avatar { width: 32px; height: 32px; border-radius: 50%; background: #2a5885; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; flex-shrink: 0; }
+        .post .name { font-weight: 600; font-size: 0.8rem; color: #2a5885; }
+        .post .date { font-size: 0.55rem; color: #8a9aaa; margin-left: auto; }
+        .post .text { font-size: 0.8rem; margin: 4px 0 8px; word-wrap: break-word; }
+        .post .actions { display: flex; gap: 16px; font-size: 0.65rem; color: #6a7a8a; border-top: 1px solid #e5ebf1; padding-top: 6px; }
+        .post .actions span { cursor: pointer; }
+        .post .actions span:hover { color: #2a5885; }
+        .post .actions .liked { color: #2a5885; font-weight: 600; }
+        .post .comments { margin-top: 6px; padding-top: 6px; border-top: 1px solid #e5ebf1; }
+        .post .comments .comment { font-size: 0.7rem; padding: 3px 0; border-bottom: 1px solid #f0f4f8; }
+        .post .comments .comment .cn { font-weight: 600; color: #2a5885; }
+        .post .comments .comment .ct { color: #333; }
+        .post .comments input { width: calc(100% - 70px); padding: 4px 8px; border: 1px solid #d0d8e0; border-radius: 4px; font-size: 0.65rem; }
+        .post .comments button { padding: 4px 12px; border: none; background: #2a5885; color: #fff; border-radius: 4px; font-size: 0.6rem; cursor: pointer; }
+        .post .comments button:hover { background: #1f4a7a; }
+        .chat-list { }
+        .chat-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #e5ebf1; cursor: pointer; }
+        .chat-item:hover { background: #f5f8fc; }
+        .chat-item .avatar { width: 36px; height: 36px; border-radius: 50%; background: #2a5885; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; flex-shrink: 0; }
+        .chat-item .name { font-weight: 600; font-size: 0.8rem; }
+        .chat-item .last { font-size: 0.65rem; color: #6a7a8a; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-item .time { font-size: 0.55rem; color: #8a9aaa; }
+        .chat-window { display: none; flex-direction: column; height: 400px; }
+        .chat-window.active { display: flex; }
+        .chat-window .messages { flex: 1; overflow-y: auto; padding: 8px; background: #f5f8fc; border-radius: 6px; display: flex; flex-direction: column; }
+        .chat-window .messages .msg { padding: 6px 10px; margin: 4px 0; border-radius: 8px; max-width: 70%; word-wrap: break-word; font-size: 0.75rem; }
+        .chat-window .messages .msg.me { background: #2a5885; color: #fff; align-self: flex-end; }
+        .chat-window .messages .msg.other { background: #e5ebf1; color: #000; align-self: flex-start; }
+        .chat-window .input-row { display: flex; gap: 6px; padding: 6px 0; }
+        .chat-window .input-row input { flex: 1; padding: 6px 10px; border: 1px solid #d0d8e0; border-radius: 4px; font-size: 0.7rem; }
+        .chat-window .input-row button { padding: 6px 16px; border: none; background: #2a5885; color: #fff; border-radius: 4px; font-size: 0.65rem; cursor: pointer; }
+        .chat-back { background: none; border: none; color: #2a5885; font-size: 0.7rem; cursor: pointer; padding: 4px 0; margin-bottom: 4px; }
+        .profile-card { background: #fff; border: 1px solid #d0d8e0; border-radius: 6px; padding: 16px; }
+        .profile-card .avatar-big { width: 80px; height: 80px; border-radius: 50%; background: #2a5885; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; margin: 0 auto 8px; }
+        .profile-card .name { text-align: center; font-size: 1.1rem; font-weight: 600; }
+        .profile-card .nick { text-align: center; font-size: 0.7rem; color: #6a7a8a; }
+        .profile-card .stat { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin: 10px 0; }
+        .profile-card .stat div { background: #f5f8fc; padding: 6px; text-align: center; border-radius: 4px; }
+        .profile-card .stat .num { font-weight: 700; font-size: 0.9rem; }
+        .profile-card .stat .label { font-size: 0.55rem; color: #6a7a8a; }
+        .profile-card .bio { font-size: 0.7rem; color: #333; text-align: center; padding: 6px 0; border-top: 1px solid #e5ebf1; }
+        .profile-card .edit { margin-top: 10px; text-align: center; }
+        .profile-card .edit input { padding: 4px 8px; border: 1px solid #d0d8e0; border-radius: 4px; font-size: 0.65rem; width: 60%; }
+        .profile-card .edit button { padding: 4px 12px; border: none; background: #2a5885; color: #fff; border-radius: 4px; font-size: 0.6rem; cursor: pointer; }
+        .exchange { }
+        .exchange .coin { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-bottom: 1px solid #e5ebf1; font-size: 0.75rem; flex-wrap: wrap; gap: 4px; }
+        .exchange .coin .name { font-weight: 600; width: 60px; }
+        .exchange .coin .price { width: 70px; color: #2a5885; font-weight: 600; }
+        .exchange .coin .change { width: 60px; font-weight: 600; }
+        .exchange .coin .change.up { color: #4caf50; }
+        .exchange .coin .change.down { color: #f44336; }
+        .exchange .coin .btns button { padding: 2px 10px; border: none; border-radius: 4px; font-size: 0.55rem; cursor: pointer; margin: 0 2px; }
+        .exchange .coin .btns .buy { background: #4caf50; color: #fff; }
+        .exchange .coin .btns .sell { background: #f44336; color: #fff; }
+        .exchange .balance { font-weight: 600; font-size: 0.9rem; padding: 8px 0; border-bottom: 1px solid #d0d8e0; margin-bottom: 8px; }
+        .exchange .create-btn { display: block; width: 100%; padding: 8px; border: none; background: #2a5885; color: #fff; border-radius: 4px; font-size: 0.7rem; cursor: pointer; margin-top: 8px; }
+        .exchange .create-btn:hover { background: #1f4a7a; }
+        .top-list { }
+        .top-item { display: flex; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid #e5ebf1; font-size: 0.7rem; }
+        .top-item .rank { font-weight: 700; color: #2a5885; width: 30px; }
+        .top-item .name { flex: 1; }
+        .top-item .value { font-weight: 600; }
+        .auth { max-width: 360px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .auth h2 { text-align: center; color: #2a5885; margin-bottom: 16px; }
+        .auth input { width: 100%; padding: 8px 12px; margin: 6px 0; border: 1px solid #d0d8e0; border-radius: 4px; font-size: 0.8rem; }
+        .auth button { width: 100%; padding: 8px; border: none; background: #2a5885; color: #fff; border-radius: 4px; font-size: 0.8rem; cursor: pointer; margin-top: 8px; }
+        .auth button:hover { background: #1f4a7a; }
+        .auth .err { color: #f44336; font-size: 0.7rem; text-align: center; margin-top: 6px; }
+        .hidden { display: none !important; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 8px 20px; border-radius: 6px; font-size: 0.7rem; z-index: 100; animation: fadeInUp 0.3s ease; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        .online-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 6px; }
+        .online-dot.online { background: #4caf50; }
+        .online-dot.offline { background: #aaa; }
+        @media (max-width: 500px) {
+            .wrap { padding: 4px; }
+            .post { padding: 8px 10px; }
+            .exchange .coin { flex-wrap: wrap; gap: 4px; }
+            .chat-window { height: 300px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="auth" class="auth">
+    <h2>🌐 Arbuznet</h2>
+    <input type="text" id="loginNick" placeholder="Никнейм">
+    <input type="password" id="loginPass" placeholder="Пароль">
+    <button onclick="login()">Войти</button>
+    <div id="authErr" class="err"></div>
+</div>
+
+<div id="app" class="wrap hidden">
+    <div class="header">
+        <h1>🌐 Arbuznet</h1>
+        <span class="user" id="headerUser" onclick="showTab('profile')">👤</span>
+    </div>
+    <div class="tabs">
+        <button class="active" onclick="showTab('feed')">📰 Лента</button>
+        <button onclick="showTab('chats')">💬 Чаты</button>
+        <button onclick="showTab('exchange')">📊 Биржа</button>
+        <button onclick="showTab('top')">🏆 Топ</button>
+        <button onclick="showTab('profile')">👤 Профиль</button>
+    </div>
+
+    <div id="panel-feed" class="panel active">
+        <div style="margin-bottom:10px;">
+            <textarea id="postInput" rows="2" placeholder="Что нового?" style="width:100%;padding:8px;border:1px solid #d0d8e0;border-radius:4px;font-size:0.8rem;resize:vertical;"></textarea>
+            <button onclick="createPost()" style="padding:6px 20px;border:none;background:#2a5885;color:#fff;border-radius:4px;font-size:0.7rem;cursor:pointer;">Опубликовать</button>
+        </div>
+        <div id="feed"></div>
+    </div>
+
+    <div id="panel-chats" class="panel">
+        <div id="chatList" class="chat-list"></div>
+        <div id="chatWindow" class="chat-window">
+            <button class="chat-back" onclick="closeChat()">← Назад</button>
+            <div id="chatMessages" class="messages"></div>
+            <div class="input-row">
+                <input type="text" id="chatInput" placeholder="Сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
+                <button onclick="sendMessage()">Отправить</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="panel-exchange" class="panel">
+        <div class="exchange">
+            <div class="balance">💰 Баланс: <span id="exBalance">0</span> монет</div>
+            <div id="coinList"></div>
+            <button class="create-btn" onclick="showCreateCoin()">+ Создать свою монету (5000 монет)</button>
+        </div>
+    </div>
+
+    <div id="panel-top" class="panel">
+        <div style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:10px;">
+            <button class="top-tab active" data-top="balance" onclick="loadTop('balance')">💰 Баланс</button>
+            <button class="top-tab" data-top="earned" onclick="loadTop('earned')">📈 Заработано</button>
+            <button class="top-tab" data-top="likes" onclick="loadTop('likes')">❤️ Лайки</button>
+            <button class="top-tab" data-top="subs" onclick="loadTop('subs')">👥 Подписки</button>
+            <button class="top-tab" data-top="online" onclick="loadTop('online')">🟢 Онлайн</button>
+        </div>
+        <div class="top-list" id="topList"></div>
+    </div>
+
+    <div id="panel-profile" class="panel">
+        <div id="profileContent"></div>
+    </div>
+</div>
+
+<script>
+// ============================================
+// ARBUZNET — БЕЗ ADMIN/1234
+// ============================================
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA0HHpRGxpabBBEN1YBaua3i5np2kJDP6g",
+  authDomain: "pixbattle-4836b.firebaseapp.com",
+  databaseURL: "https://pixbattle-4836b-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "pixbattle-4836b",
+  storageBucket: "pixbattle-4836b.firebasestorage.app",
+  messagingSenderId: "790421847013",
+  appId: "1:790421847013:web:4b8830ed262fc7b8780d0c",
+  measurementId: "G-E0ME587N91"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let currentUser = null;
+let currentChat = null;
+let coinPrices = {};
+let coinInterval = null;
+
+// ============================================
+// AUTH
+// ============================================
+function login() {
+    const nick = document.getElementById('loginNick').value.trim();
+    const pass = document.getElementById('loginPass').value.trim();
+    
+    document.getElementById('authErr').textContent = '';
+    
+    if (!nick || !pass) { 
+        document.getElementById('authErr').textContent = 'Заполните все поля'; 
+        return; 
+    }
+
+    db.ref('users/' + nick).once('value', snap => {
+        if (!snap.exists()) {
+            const userData = {
+                nick: nick,
+                pass: pass,
+                balance: 1000,
+                totalEarned: 0,
+                likes: 0,
+                subs: 0,
+                posts: 0,
+                created: Date.now(),
+                lastSeen: Date.now(),
+                bio: '🍉 Арбузный человек',
+                avatar: nick.charAt(0).toUpperCase(),
+                coins: {}
+            };
+            db.ref('users/' + nick).set(userData);
+            currentUser = { nick: nick, ...userData };
+        } else {
+            const data = snap.val();
+            if (data.pass !== pass) {
+                document.getElementById('authErr').textContent = 'Неверный пароль';
+                return;
+            }
+            currentUser = { nick: nick, ...data };
+        }
+        
+        db.ref('users/' + nick + '/lastSeen').set(Date.now());
+        
+        document.getElementById('auth').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        document.getElementById('headerUser').textContent = '👤 ' + nick;
+        
+        loadFeed();
+        loadCoins();
+        loadChats();
+        loadProfile();
+        startCoinUpdate();
+        updateOnlineStatus();
+        
+        document.getElementById('authErr').textContent = '';
+        showToast('Добро пожаловать, ' + nick + '!');
+    });
+}
+
+function logout() {
+    if (currentUser) {
+        db.ref('users/' + currentUser.nick + '/lastSeen').set(Date.now() - 600000);
+    }
+    currentUser = null;
+    currentChat = null;
+    document.getElementById('app').classList.add('hidden');
+    document.getElementById('auth').classList.remove('hidden');
+    if (coinInterval) clearInterval(coinInterval);
+}
+
+// ============================================
+// FEED
+// ============================================
+function loadFeed() {
+    const feed = document.getElementById('feed');
+    feed.innerHTML = '<div style="text-align:center;color:#6a7a8a;padding:20px;">Загрузка...</div>';
+    
+    db.ref('posts').orderByChild('created').once('value', snap => {
+        const posts = [];
+        snap.forEach(child => {
+            const p = child.val();
+            p.id = child.key;
+            posts.push(p);
+        });
+        posts.reverse();
+        if (posts.length === 0) {
+            feed.innerHTML = '<div style="text-align:center;color:#6a7a8a;padding:20px;">Пока нет постов. Будь первым!</div>';
+            return;
+        }
+        let html = '';
+        posts.forEach(p => {
+            const isLiked = p.likes && p.likes[currentUser.nick] ? true : false;
+            const likeCount = p.likes ? Object.keys(p.likes).length : 0;
+            html += `<div class="post">
+                <div class="head">
+                    <div class="avatar">${p.avatar || p.nick.charAt(0).toUpperCase()}</div>
+                    <span class="name">${p.nick}</span>
+                    <span class="date">${new Date(p.created).toLocaleString()}</span>
+                </div>
+                <div class="text">${p.text}</div>
+                <div class="actions">
+                    <span onclick="likePost('${p.id}')" class="${isLiked ? 'liked' : ''}">❤️ ${likeCount}</span>
+                    <span onclick="toggleComments('${p.id}')">💬 ${p.comments ? Object.keys(p.comments).length : 0}</span>
+                </div>
+                <div class="comments" id="comments-${p.id}" style="display:none;">
+                    <div id="commentList-${p.id}">`;
+            if (p.comments) {
+                Object.keys(p.comments).forEach(cid => {
+                    const c = p.comments[cid];
+                    html += `<div class="comment"><span class="cn">${c.nick}</span> <span class="ct">${c.text}</span></div>`;
+                });
+            }
+            html += `</div>
+                    <div style="display:flex;gap:4px;margin-top:4px;">
+                        <input type="text" id="commentInput-${p.id}" placeholder="Написать комментарий...">
+                        <button onclick="addComment('${p.id}')">Ответить</button>
+                    </div>
+                </div>
+            </div>`;
+        });
+        feed.innerHTML = html;
+    });
+}
+
+function createPost() {
+    const text = document.getElementById('postInput').value.trim();
+    if (!text) { showToast('Напишите что-нибудь'); return; }
+    if (!currentUser) return;
+
+    const post = {
+        nick: currentUser.nick,
+        avatar: currentUser.avatar || currentUser.nick.charAt(0).toUpperCase(),
+        text: text,
+        created: Date.now(),
+        likes: {},
+        comments: {}
+    };
+    db.ref('posts').push(post);
+    db.ref('users/' + currentUser.nick + '/posts').transaction(v => (v || 0) + 1);
+    document.getElementById('postInput').value = '';
+    showToast('Пост опубликован!');
+    loadFeed();
+}
+
+function likePost(postId) {
+    if (!currentUser) return;
+    const ref = db.ref('posts/' + postId + '/likes/' + currentUser.nick);
+    ref.once('value', snap => {
+        if (snap.exists()) {
+            ref.remove();
+            db.ref('users/' + currentUser.nick + '/likes').transaction(v => Math.max(0, (v || 0) - 1));
+        } else {
+            ref.set(true);
+            db.ref('users/' + currentUser.nick + '/likes').transaction(v => (v || 0) + 1);
+        }
+        loadFeed();
+    });
+}
+
+function toggleComments(postId) {
+    const el = document.getElementById('comments-' + postId);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function addComment(postId) {
+    const input = document.getElementById('commentInput-' + postId);
+    const text = input.value.trim();
+    if (!text || !currentUser) return;
+    const comment = {
+        nick: currentUser.nick,
+        text: text,
+        created: Date.now()
+    };
+    db.ref('posts/' + postId + '/comments').push(comment);
+    input.value = '';
+    loadFeed();
+}
+
+// ============================================
+// CHATS
+// ============================================
+function loadChats() {
+    const list = document.getElementById('chatList');
+    if (!currentUser) return;
+    list.innerHTML = '<div style="text-align:center;color:#6a7a8a;padding:20px;">Загрузка...</div>';
+
+    db.ref('users').once('value', snap => {
+        const users = [];
+        snap.forEach(child => {
+            const u = child.val();
+            u.nick = child.key;
+            if (u.nick !== currentUser.nick) users.push(u);
+        });
+        if (users.length === 0) {
+            list.innerHTML = '<div style="text-align:center;color:#6a7a8a;padding:20px;">Нет других пользователей</div>';
+            return;
+        }
+        let html = '';
+        users.forEach(u => {
+            const lastMsg = u.lastMsg || 'Нет сообщений';
+            const time = u.lastMsgTime ? new Date(u.lastMsgTime).toLocaleTimeString() : '';
+            const isOnline = (Date.now() - (u.lastSeen || 0)) < 60000;
+            html += `<div class="chat-item" onclick="openChat('${u.nick}')">
+                <div class="avatar">${u.avatar || u.nick.charAt(0).toUpperCase()}</div>
+                <span class="name">${u.nick} <span class="online-dot ${isOnline ? 'online' : 'offline'}"></span></span>
+                <span class="last">${lastMsg}</span>
+                <span class="time">${time}</span>
+            </div>`;
+        });
+        list.innerHTML = html;
+    });
+}
+
+function openChat(partner) {
+    currentChat = partner;
+    document.getElementById('chatList').style.display = 'none';
+    document.getElementById('chatWindow').classList.add('active');
+    loadMessages(partner);
+}
+
+function closeChat() {
+    currentChat = null;
+    document.getElementById('chatList').style.display = 'block';
+    document.getElementById('chatWindow').classList.remove('active');
+    loadChats();
+}
+
+function loadMessages(partner) {
+    const container = document.getElementById('chatMessages');
+    container.innerHTML = '<div style="text-align:center;color:#6a7a8a;padding:20px;">Загрузка...</div>';
+    const chatId = [currentUser.nick, partner].sort().join('_');
+    db.ref('chats/' + chatId).orderByChild('created').on('value', snap => {
+        const msgs = [];
+        snap.forEach(child => msgs.push(child.val()));
+        let html = '';
+        msgs.forEach(m => {
+            const isMe = m.from === currentUser.nick;
+            html += `<div class="msg ${isMe ? 'me' : 'other'}">${isMe ? '' : m.from + ': '}${m.text}</div>`;
+        });
+        container.innerHTML = html || '<div style="text-align:center;color:#6a7a8a;padding:20px;">Напишите первое сообщение</div>';
+        container.scrollTop = container.scrollHeight;
+    });
+}
+
+function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text || !currentChat || !currentUser) return;
+    const chatId = [currentUser.nick, currentChat].sort().join('_');
+    const msg = {
+        from: currentUser.nick,
+        to: currentChat,
+        text: text,
+        created: Date.now()
+    };
+    db.ref('chats/' + chatId).push(msg);
+    db.ref('users/' + currentChat + '/lastMsg').set(text);
+    db.ref('users/' + currentChat + '/lastMsgTime').set(Date.now());
+    db.ref('users/' + currentUser.nick + '/lastMsg').set(text);
+    db.ref('users/' + currentUser.nick + '/lastMsgTime').set(Date.now());
+    input.value = '';
+}
+
+// ============================================
+// EXCHANGE
+// ============================================
+function loadCoins() {
+    db.ref('coins').once('value', snap => {
+        const data = snap.val();
+        if (data) {
+            coinPrices = data;
+        } else {
+            initCoins();
+        }
+        renderCoins();
+    });
+}
+
+function initCoins() {
+    const coins = {
+        'SPK': { name: 'SPK', price: 100, change: 0, creator: 'system' },
+        'ARB': { name: 'ARB', price: 250, change: 0, creator: 'system' },
+        'NAS': { name: 'NAS', price: 50, change: 0, creator: 'system' },
+        'BTC': { name: 'BTC', price: 1000, change: 0, creator: 'system' },
+        'ETH': { name: 'ETH', price: 500, change: 0, creator: 'system' },
+        'DOGE': { name: 'DOGE', price: 10, change: 0, creator: 'system' },
+        'ADA': { name: 'ADA', price: 30, change: 0, creator: 'system' },
+        'DOT': { name: 'DOT', price: 80, change: 0, creator: 'system' },
+        'LINK': { name: 'LINK', price: 60, change: 0, creator: 'system' },
+        'XRP': { name: 'XRP', price: 20, change: 0, creator: 'system' }
+    };
+    db.ref('coins').set(coins);
+    coinPrices = coins;
+}
+
+function renderCoins() {
+    const container = document.getElementById('coinList');
+    if (!currentUser) return;
+    let html = '';
+    Object.keys(coinPrices).forEach(key => {
+        const c = coinPrices[key];
+        const owned = currentUser.coins && currentUser.coins[key] ? currentUser.coins[key] : 0;
+        const changeClass = c.change >= 0 ? 'up' : 'down';
+        const changeSign = c.change >= 0 ? '+' : '';
+        html += `<div class="coin">
+            <span class="name">${c.name}</span>
+            <span class="price">${c.price.toFixed(2)} ₽</span>
+            <span class="change ${changeClass}">${changeSign}${c.change.toFixed(2)}%</span>
+            <span style="font-size:0.6rem;color:#6a7a8a;">${owned}</span>
+            <span class="btns">
+                <button class="buy" onclick="tradeCoin('${key}','buy')">Купить</button>
+                <button class="sell" onclick="tradeCoin('${key}','sell')">Продать</button>
+            </span>
+        </div>`;
+    });
+    container.innerHTML = html;
+    db.ref('users/' + currentUser.nick + '/balance').once('value', snap => {
+        document.getElementById('exBalance').textContent = snap.val() || 1000;
+    });
+}
+
+function tradeCoin(coinId, type) {
+    if (!currentUser) return;
+    const coin = coinPrices[coinId];
+    if (!coin) return;
+    const ref = db.ref('users/' + currentUser.nick);
+    ref.once('value', snap => {
+        const data = snap.val();
+        let balance = data.balance || 1000;
+        let coins = data.coins || {};
+        const price = coin.price;
+        if (type === 'buy') {
+            if (balance < price) { showToast('Недостаточно монет'); return; }
+            balance -= price;
+            coins[coinId] = (coins[coinId] || 0) + 1;
+            db.ref('users/' + currentUser.nick + '/totalEarned').transaction(v => (v || 0) - price);
+        } else {
+            if (!coins[coinId] || coins[coinId] < 1) { showToast('Нет монет для продажи'); return; }
+            balance += price;
+            coins[coinId] = (coins[coinId] || 0) - 1;
+            db.ref('users/' + currentUser.nick + '/totalEarned').transaction(v => (v || 0) + price);
+        }
+        db.ref('users/' + currentUser.nick + '/balance').set(balance);
+        db.ref('users/' + currentUser.nick + '/coins').set(coins);
+        currentUser.balance = balance;
+        currentUser.coins = coins;
+        document.getElementById('exBalance').textContent = balance;
+        renderCoins();
+        showToast(type === 'buy' ? 'Куплено!' : 'Продано!');
+    });
+}
+
+function showCreateCoin() {
+    if (!currentUser) return;
+    if ((currentUser.balance || 0) < 5000) { showToast('Нужно 5000 монет'); return; }
+    const name = prompt('Название монеты (3-5 букв):');
+    if (!name || name.length < 3) return;
+    const symbol = name.toUpperCase().slice(0, 3);
+    db.ref('coins/' + symbol).once('value', snap => {
+        if (snap.exists()) { showToast('Монета с таким символом уже есть'); return; }
+        db.ref('users/' + currentUser.nick + '/balance').transaction(v => (v || 0) - 5000);
+        const newCoin = {
+            name: symbol,
+            price: 10,
+            change: 0,
+            creator: currentUser.nick,
+            created: Date.now()
+        };
+        db.ref('coins/' + symbol).set(newCoin);
+        showToast('Монета ' + symbol + ' создана!');
+        loadCoins();
+    });
+}
+
+function startCoinUpdate() {
+    if (coinInterval) clearInterval(coinInterval);
+    updateCoinPrices();
+    coinInterval = setInterval(updateCoinPrices, 300000);
+}
+
+function updateCoinPrices() {
+    db.ref('coins').once('value', snap => {
+        const data = snap.val();
+        if (!data) return;
+        Object.keys(data).forEach(key => {
+            const coin = data[key];
+            const change = (Math.random() - 0.48) * 0.08;
+            const newPrice = Math.max(0.01, coin.price * (1 + change));
+            const newChange = ((newPrice - coin.price) / coin.price) * 100;
+            db.ref('coins/' + key + '/price').set(Math.round(newPrice * 100) / 100);
+            db.ref('coins/' + key + '/change').set(Math.round(newChange * 100) / 100);
+        });
+        loadCoins();
+    });
+}
+
+// ============================================
+// TOP
+// ============================================
+function loadTop(type) {
+    document.querySelectorAll('.top-tab').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.top-tab[data-top="${type}"]`)?.classList.add('active');
+    const container = document.getElementById('topList');
+    container.innerHTML = '<div style="text-align:center;color:#6a7a8a;padding:20px;">Загрузка...</div>';
+
+    db.ref('users').once('value', snap => {
+        const users = [];
+        snap.forEach(child => {
+            const u = child.val();
+            u.nick = child.key;
+            users.push(u);
+        });
+        let sorted = [];
+        if (type === 'balance') {
+            sorted = users.sort((a, b) => (b.balance || 0) - (a.balance || 0));
+        } else if (type === 'earned') {
+            sorted = users.sort((a, b) => (b.totalEarned || 0) - (a.totalEarned || 0));
+        } else if (type === 'likes') {
+            sorted = users.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+        } else if (type === 'subs') {
+            sorted = users.sort((a, b) => (b.subs || 0) - (a.subs || 0));
+        } else if (type === 'online') {
+            sorted = users.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
+        }
+        let html = '';
+        sorted.slice(0, 10).forEach((u, i) => {
+            let value = 0;
+            if (type === 'balance') value = u.balance || 0;
+            else if (type === 'earned') value = u.totalEarned || 0;
+            else if (type === 'likes') value = u.likes || 0;
+            else if (type === 'subs') value = u.subs || 0;
+            else if (type === 'online') {
+                const isOnline = (Date.now() - (u.lastSeen || 0)) < 60000;
+                value = isOnline ? '🟢 Онлайн' : '⚫ Офлайн';
+            }
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+            html += `<div class="top-item">
+                <span class="rank">${medal}</span>
+                <span class="name">${u.nick}</span>
+                <span class="value">${value}</span>
+            </div>`;
+        });
+        container.innerHTML = html || '<div style="text-align:center;color:#6a7a8a;padding:20px;">Нет данных</div>';
+    });
+}
+
+// ============================================
+// PROFILE
+// ============================================
+function loadProfile() {
+    if (!currentUser) return;
+    const container = document.getElementById('profileContent');
+    const isOnline = (Date.now() - (currentUser.lastSeen || 0)) < 60000;
+    container.innerHTML = `
+        <div class="profile-card">
+            <div class="avatar-big">${currentUser.avatar || currentUser.nick.charAt(0).toUpperCase()}</div>
+            <div class="name">${currentUser.nick}</div>
+            <div class="nick">${isOnline ? '🟢 Онлайн' : '⚫ Офлайн'}</div>
+            <div class="stat">
+                <div><div class="num">${currentUser.balance || 0}</div><div class="label">💰 Баланс</div></div>
+                <div><div class="num">${currentUser.totalEarned || 0}</div><div class="label">📈 Заработано</div></div>
+                <div><div class="num">${currentUser.posts || 0}</div><div class="label">📰 Постов</div></div>
+            </div>
+            <div class="bio">${currentUser.bio || '🍉 Арбузный человек'}</div>
+            <div class="edit">
+                <input type="text" id="bioInput" placeholder="Новый статус" value="${currentUser.bio || ''}">
+                <button onclick="updateBio()">Изменить статус</button>
+            </div>
+            <div style="margin-top:10px;text-align:center;">
+                <button onclick="logout()" style="padding:4px 16px;border:none;background:#f44336;color:#fff;border-radius:4px;font-size:0.6rem;cursor:pointer;">Выйти</button>
+            </div>
+        </div>
+    `;
+}
+
+function updateBio() {
+    const bio = document.getElementById('bioInput').value.trim();
+    if (!currentUser) return;
+    db.ref('users/' + currentUser.nick + '/bio').set(bio || '🍉 Арбузный человек');
+    currentUser.bio = bio;
+    loadProfile();
+    showToast('Статус обновлён!');
+}
+
+function updateOnlineStatus() {
+    setInterval(() => {
+        if (currentUser) {
+            db.ref('users/' + currentUser.nick + '/lastSeen').set(Date.now());
+        }
+    }, 30000);
+}
+
+// ============================================
+// UI HELPERS
+// ============================================
+function showTab(tab) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    document.querySelector(`.tabs button[onclick="showTab('${tab}')"]`)?.classList.add('active');
+    if (tab === 'feed') loadFeed();
+    if (tab === 'chats') loadChats();
+    if (tab === 'exchange') loadCoins();
+    if (tab === 'top') loadTop('balance');
+    if (tab === 'profile') loadProfile();
+}
+
+function showToast(msg) {
+    const old = document.querySelector('.toast');
+    if (old) old.remove();
+    const div = document.createElement('div');
+    div.className = 'toast';
+    div.textContent = msg;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 2500);
+}
+
+document.querySelectorAll('.top-tab').forEach(b => {
+    b.onclick = function() {
+        loadTop(this.dataset.top);
+    };
+});
+
+document.addEventListener('DOMContentLoaded', () => {});
+</script>
+</body>
+</html>
